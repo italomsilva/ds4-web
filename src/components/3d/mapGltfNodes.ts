@@ -1,11 +1,13 @@
 import type { Object3D } from 'three'
-import { isMeshName, type ButtonKey, type MeshName } from '../../types/gamepad'
+import { isButtonKey, isMeshName, type ButtonKey, type MeshName } from '../../types/gamepad'
 import type { PartSpec } from './animation'
 
 /**
  * Mapeamento dos nós do .GLB real para as partes interativas padronizadas.
  *
- * Estratégia em 3 passes (por ordem de prioridade):
+ * Estratégia em 4 passes (por ordem de prioridade):
+ *  0. `userData` (extras embutidos no .glb, ex.: `{ role: 'press', button: 'cross' }`)
+ *     — autoritativo; nós com `role: 'static'` são terminais (nunca animados);
  *  1. Nome padronizado EXATO (ex.: "Button_Cross") — GLBs bem estruturados;
  *  2. Padrões de nome individuais (ex.: "cross_01", "l2", "left_stick");
  *  3. Grupos MESCLADOS (ex.: "Joysticks", "Triggers", "Buttons") — comuns em
@@ -138,6 +140,61 @@ const MERGED_PATTERNS: ReadonlyArray<{
 ]
 
 // ---------------------------------------------------------------------------
+// Passo 0: extras embutidos no .glb (node.extras → Object3D.userData)
+// ---------------------------------------------------------------------------
+
+/** Formato dos extras gravados por nó no dualshock4_layers.glb */
+interface GlbNodeExtras {
+  role?: string
+  button?: string
+  stick?: string
+  trigger?: string
+}
+
+/** Inverso de PART_TO_BUTTON: botão lógico (do userData) → parte padronizada */
+const BUTTON_TO_PART: Partial<Record<ButtonKey, MeshName>> = {
+  cross: 'Button_Cross',
+  circle: 'Button_Circle',
+  square: 'Button_Square',
+  triangle: 'Button_Triangle',
+  dpadUp: 'DPad_Up',
+  dpadDown: 'DPad_Down',
+  dpadLeft: 'DPad_Left',
+  dpadRight: 'DPad_Right',
+  l1: 'Button_L1',
+  r1: 'Button_R1',
+  l2: 'Trigger_L2',
+  r2: 'Trigger_R2',
+  // L3/R3 animam o stick inteiro (a base Stick_*_Base fica estática)
+  l3: 'Stick_Left',
+  r3: 'Stick_Right',
+  share: 'Button_Share',
+  options: 'Button_Options',
+  ps: 'Button_PS',
+  touchpad: 'Touchpad',
+}
+
+/**
+ * Resolve a parte padronizada a partir dos extras do nó. Cobre os roles
+ * 'press' | 'stick' | 'trigger' | 'led'; 'static' (peça fixa declarada) e
+ * roles desconhecidos devolvem null.
+ */
+function partFromUserData(data: GlbNodeExtras): MeshName | null {
+  switch (data.role) {
+    case 'press':
+      return isButtonKey(data.button ?? '') ? BUTTON_TO_PART[data.button as ButtonKey] ?? null : null
+    case 'stick':
+      return data.stick === 'leftStick' ? 'Stick_Left' : data.stick === 'rightStick' ? 'Stick_Right' : null
+    case 'trigger':
+      return data.trigger === 'l2' ? 'Trigger_L2' : data.trigger === 'r2' ? 'Trigger_R2' : null
+    case 'led':
+      return 'Lightbar'
+    default:
+      return null
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Resolução DINÂMICA de ação pelo nome da malha clicada (e.object.name)
 // ---------------------------------------------------------------------------
 
@@ -265,6 +322,17 @@ export function mapGltfNodes(root: Object3D): GltfMapping {
   }
 
   root.traverse((obj) => {
+    // 0) Extras embutidos no .glb (userData) — prioridade máxima sobre nomes.
+    //    Nós com role 'static' (casco, bases dos analógicos, portas, parafusos)
+    //    são TERMINAIS: não podem cair nos padrões por nome, que dariam
+    //    falso-positivo ("Stick_Left_Base" casa com /stick.*left/i).
+    const userData = obj.userData as GlbNodeExtras | undefined
+    if (userData?.role) {
+      const part = partFromUserData(userData)
+      if (part && !assigned.has(part)) addIndividual(part, obj)
+      return
+    }
+
     const name = obj.name
     if (!name) return
 

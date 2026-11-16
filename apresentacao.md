@@ -124,8 +124,9 @@ O projeto segue uma especificação formal (documentada em `prompt.md`), que def
 
 ### 3.5 Asset externo
 
-- `public/models/dualshock4.glb` — modelo 3D binário glTF do DualShock 4
-  (fonte Sketchfab, licença **CC-BY**), carregado pelo `useGLTF` do drei.
+- `public/models/dualshock4_layers.glb` — modelo 3D binário glTF do DualShock 4 em
+  **26 peças separadas** (uma por botão, com pivôs próprios e `extras` de função
+  `role`/`button`/`stick` em cada nó), carregado pelo `useGLTF` do drei.
 
 ---
 
@@ -574,21 +575,30 @@ const scene = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf.scene])
 
 ### 12.2 Normalização de escala (`Box3`)
 
-Modelos da web vêm com **escalas arbitrárias** (o arquivo incluso tem ~30 unidades). Um
-`Box3.setFromObject` mede a bounding box, e o grupo `fitRef` recebe:
+Modelos da web vêm com **escalas arbitrárias**. Um `Box3.setFromObject` mede a bounding box
+do modelo e o grupo `fitRef` recebe:
 
 ```ts
-const scale = FIT_SIZE / maxDim            // FIT_SIZE = 3.4 (largura compatível c/ o procedural)
+const scale = FIT_SIZE / maxDim            // FIT_SIZE = 1.9 (largura do modelo procedural)
 fit.scale.setScalar(scale)
 fit.position.set(-center.x*scale, -center.y*scale, -center.z*scale)  // centraliza
 ```
 
-Resultado: qualquer GLB entra no enquadramento correto, do tamanho do procedural.
+O `dualshock4_layers.glb` já vem normalizado para 1.9 de largura — a mesma do modelo
+procedural — então aqui a escala calculada é ~1.0 (a normalização fica como salvaguarda
+para qualquer `.glb` substituto).
 
-### 12.3 O mapeamento em 3 passes — `mapGltfNodes.ts`
+### 12.3 O mapeamento em 4 passes — `mapGltfNodes.ts`
 
-GLBs de terceiros têm **nomes imprevisíveis**. O mapeador roda um `root.traverse` com três
+GLBs de terceiros têm **nomes imprevisíveis**. O mapeador roda um `root.traverse` com quatro
 estratégias em ordem de prioridade:
+
+**Passo 0 — `userData` (extras embutidos no .glb).** Cada nó do `dualshock4_layers.glb`
+carrega `{ role, button, stick, trigger }` (`press`, `stick`, `trigger`, `led`, `static`).
+É a fonte **autoritativa** — funciona mesmo que os nomes dos nós mudem — e os nós
+`role: 'static'` (casco, bases dos analógicos, portas, parafusos) são **terminais**: nunca
+caem nos passes por nome, que dariam falso-positivo (`"Stick_Left_Base"` casa com
+`/stick.*left/i`).
 
 **Passo 1 — Nome padronizado exato.** `isMeshName(name)` bate com `Button_Cross` etc.
 

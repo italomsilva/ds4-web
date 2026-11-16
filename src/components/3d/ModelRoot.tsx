@@ -6,7 +6,7 @@ import { GltfDualShockModel } from './GltfModel'
 
 /**
  * Decide qual modelo renderizar:
- * - "real": tenta o .GLB de public/models/dualshock4.glb (via useGLTF)
+ * - "real": tenta o .GLB de public/models/dualshock4_layers.glb (via useGLTF)
  * - "procedural": modelo construído por primitivas (fallback garantido)
  *
  * Se o .GLB falhar (ausente/corrompido/parse inválido), o GLBErrorBoundary

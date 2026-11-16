@@ -49,14 +49,17 @@ src/
 
 ## Nós do modelo (nomes padronizados)
 
-A aplicação tenta carregar o **modelo real** em `public/models/dualshock4.glb` (via `useGLTF`)
+A aplicação tenta carregar o **modelo real** em `public/models/dualshock4_layers.glb` (via `useGLTF`)
 e, em caso de falha (arquivo ausente, corrompido ou parse inválido), um **Error Boundary**
 captura o erro e o **Modelo Procedural** assume automaticamente — o sistema nunca quebra.
 O seletor manual "Real (.GLB) ↔ Procedural (Reserva)" no topo esquerdo do overlay permite
 alternar entre os dois a qualquer momento.
 
-O carregador inspeciona os nós no console (`[DS4 GLB] nodes:`) e mapeia as malhas em 3 níveis:
+O carregador inspeciona os nós no console (`[DS4 GLB] nodes:`) e mapeia as malhas em 4 níveis:
 
+0. **`userData` (extras embutidos no .glb)** — cada nó carrega `{ role, button, stick }`
+   (`press`, `stick`, `trigger`, `led`, `static`); peças marcadas `static` (casco, bases dos
+   analógicos, portas, parafusos) ficam fixas por declaração;
 1. **Nomes padronizados exatos** — `Button_Cross`, `Button_Circle`, `Button_Square`,
    `Button_Triangle`, `DPad_Up/Down/Left/Right`, `Button_L1`, `Button_R1`, `Trigger_L2`,
    `Trigger_R2`, `Stick_Left`, `Stick_Right`, `Button_L3`, `Button_R3`, `Button_Share`,
@@ -69,8 +72,10 @@ A animação (`useFrame` + `THREE.MathUtils.lerp`) e a interação por ponteiro 
 **compartilhadas** entre os dois modelos (`components/3d/animation.ts` e
 `components/3d/usePointerInput.ts`) — a diferença é apenas a coleta das partes.
 
-> Nota: o `.glb` incluído (Sketchfab, CC-BY) é uma malha parcialmente mesclada; por isso o
-> modelo procedural é mantido como reserva de alta fidelidade, com animação por peça.
+> Nota: o `dualshock4_layers.glb` incluído tem **26 peças separadas** — uma por botão,
+> analógicos divididos em base fixa (`Stick_*_Base`) e capa móvel, pivô próprio por peça
+> e `extras` de função (`role`/`button`/`stick`) em cada nó. O modelo procedural é mantido
+> como reserva caso o arquivo falhe.
 
 ## Notas
 

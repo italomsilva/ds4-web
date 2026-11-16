@@ -49,7 +49,7 @@ export interface GamepadConnection {
 
 /**
  * Nomes padronizados das sub-malhas / nós do modelo 3D.
- * Um `.glb` em `public/models/dualshock4.glb` deve seguir estes nomes;
+ * Um `.glb` em `public/models/dualshock4_layers.glb` deve seguir estes nomes;
  * o modelo procedural embutido já os utiliza nativamente.
  */
 export type MeshName =
@@ -128,6 +128,13 @@ export const STANDARD_BUTTON_MAP: Record<number, ButtonKey> = {
   15: 'dpadRight',
   16: 'ps',
   17: 'touchpad',
+}
+
+const BUTTON_KEY_SET: ReadonlySet<string> = new Set(Object.values(STANDARD_BUTTON_MAP))
+
+/** Type guard de ButtonKey a partir de string (ex.: extras/userData embutidos em GLBs) */
+export function isButtonKey(value: string): value is ButtonKey {
+  return BUTTON_KEY_SET.has(value)
 }
 
 export function createInitialGamepadState(): GamepadState {

@@ -115,7 +115,7 @@ function ModelSwitcher(): React.ReactElement {
           Procedural (Reserva)
         </button>
       </div>
-      <div className="mt-1.5 font-mono text-[9px] text-white/30">public/models/dualshock4.glb</div>
+      <div className="mt-1.5 font-mono text-[9px] text-white/30">public/models/dualshock4_layers.glb</div>
     </div>
   )
 }

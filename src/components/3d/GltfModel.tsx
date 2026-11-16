@@ -17,13 +17,15 @@ import { mapGltfNodes, resolveActionFromName, type NodeRole } from './mapGltfNod
 import { usePointerInput } from './usePointerInput'
 
 /** Caminho público do modelo real (coloque o arquivo em public/models/) */
-export const GLB_URL = '/models/dualshock4.glb'
+export const GLB_URL = '/models/dualshock4_layers.glb'
 
 /**
  * Tamanho alvo (maior dimensão, em unidades de cena) após a normalização.
- * Compatível com o enquadramento do modelo procedural (~3.4 de largura).
+ * O dualshock4_layers.glb já vem com 1.9 de largura — a mesma do modelo
+ * procedural — então aqui a normalização é no-op; fica como salvaguarda
+ * para qualquer .glb substituto com escala arbitrária.
  */
-const FIT_SIZE = 3.4
+const FIT_SIZE = 1.9
 
 interface GltfResult {
   scene: Group
@@ -176,10 +178,11 @@ export function GltfDualShockModel(): React.ReactElement {
       <group rotation={[-0.35, 0, 0]} position={[0, 0.05, 0]}>
         <group ref={fitRef}>
           <primitive object={scene} />
+          {/* pointLight da Lightbar, no espaço do modelo (a peça "Lightbar" fica
+              em [0, -0.244, -0.328]) — herda a normalização do fit e a cor do LED */}
+          <pointLight position={[0, -0.15, -0.5]} intensity={2.4} distance={4} color={ledColor} />
         </group>
       </group>
-      {/* pointLight da Lightbar (mesma cor do LED, mesmo sem nó dedicado) */}
-      <pointLight position={[0, 0.7, 1.1]} intensity={2.4} distance={4} color={ledColor} />
     </group>
   )
 }
